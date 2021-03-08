@@ -8,8 +8,11 @@ public class Map : MonoBehaviour
 
     const string Key = "bZ6c1Bj15QciY0IipGyKpyDwwAJl1D4a";
 
+    public GameObject map;
+    public GameObject Player;
     public Renderer maprender;
-    Vector2 PlayerPosition = new Vector2(42.3627f, -71.05686f);
+    Vector2 PlayerPosition = new Vector2(59.98633f, 30.40325f);
+    Vector2 PlayerPositionSmesh;
 
     int _zoom = 17;
     string _maptype = "map";
@@ -19,14 +22,19 @@ public class Map : MonoBehaviour
     public Text lanti;
     public Text longi;
 
+    Vector3 smesh;
+    public float speed;
+
     void Start()
     {
         System.Threading.Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("en-US");
 
         gpslocation = GetComponent<TestLocationServis>();
 
-        Debug.Log(gpslocation.latitudeValue);
-        Debug.Log(gpslocation.longitudeValue);
+        PlayerPositionSmesh = PlayerPosition;
+
+      //  Debug.Log(gpslocation.latitudeValue);
+      //  Debug.Log(gpslocation.longitudeValue);
 
         if (Application.internetReachability == NetworkReachability.NotReachable)
         {
@@ -43,34 +51,30 @@ public class Map : MonoBehaviour
 
     private void StartLoadMap(Vector2 playerPosition)
     {
-
-        
-
-       // Debug.Log(_url);
-
-
+       
 
         StartCoroutine(LoadImage());
     }
 
+
     void urlseach(Vector2 playerPosition)
     {
-        playerPosition = new Vector2(gpslocation.latitudeValue, gpslocation.longitudeValue);
-        _url = "http://open.mapquestapi.com/staticmap/v4/getmap?key=" + Key + "&size=1280,1280&zoom=" + _zoom + "&type=" + _maptype + "&center=" + playerPosition.x + "," + playerPosition.y;
+        _url = "http://open.mapquestapi.com/staticmap/v4/getmap?key=" + Key + "&size=2560,2560&zoom=" + _zoom + "&type=" + _maptype + "&center=" + playerPosition.x + "," + playerPosition.y;
 
-        lanti.text = gpslocation.latitudeValue.ToString();
-        longi.text = gpslocation.longitudeValue.ToString();
+        lanti.text = playerPosition.x.ToString();
+        longi.text = playerPosition.y.ToString();
+
+        Debug.Log(_url);
     }
+
 
     private IEnumerator LoadImage()
     {
-        while (true)
-        {
             urlseach(PlayerPosition);
 
-#pragma warning disable CS0618 // Тип или член устарел
+    #pragma warning disable CS0618 // Тип или член устарел
             var www = new WWW(_url);
-#pragma warning restore CS0618 // Тип или член устарел
+    #pragma warning restore CS0618 // Тип или член устарел
             while (!www.isDone)
             {
                 // Debug.Log("progress = " + www.progress);
@@ -84,9 +88,11 @@ public class Map : MonoBehaviour
                 yield return new WaitForSeconds(0.5f);
                 maprender.material.mainTexture = null;
                 Texture2D tmp;
-                tmp = new Texture2D(1280, 1280, TextureFormat.RGB24, false);
+                tmp = new Texture2D(2560, 2560, TextureFormat.RGB24, false);
                 maprender.material.mainTexture = tmp;
                 www.LoadImageIntoTexture(tmp);
+                Debug.Log(PlayerPosition);
+                Player.transform.position = new Vector3(0, 0, 0);
             }
             else
             {
@@ -97,9 +103,33 @@ public class Map : MonoBehaviour
 
             maprender.enabled = true;
 
-            yield return new WaitForSeconds(10f);
+    }
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.W)) PlayerPositionSmesh.y += 0.00001f;
+        if (Input.GetKeyDown(KeyCode.S)) PlayerPositionSmesh.y -= 0.00001f;
+        if (Input.GetKeyDown(KeyCode.D)) PlayerPositionSmesh.x += 0.00001f;
+        if (Input.GetKeyDown(KeyCode.A)) PlayerPositionSmesh.x -= 0.00001f;
+        
+        if (PlayerPosition.x != PlayerPositionSmesh.x || PlayerPosition.y != PlayerPositionSmesh.y)
+        {
+            smesh.x = (PlayerPositionSmesh.x - PlayerPosition.x) * speed;
+            smesh.z = (PlayerPositionSmesh.y - PlayerPosition.y) * speed;
+
+            Player.transform.position += smesh;
+            PlayerPosition.x = PlayerPositionSmesh.x;
+            PlayerPosition.y = PlayerPositionSmesh.y;
         }
 
+
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        // Vector2 playerPosition = new Vector2(gpslocation.latitudeValue, gpslocation.longitudeValue);
+        Vector2 playerPosition = PlayerPosition;
+        StartLoadMap(playerPosition);
     }
 
 }
